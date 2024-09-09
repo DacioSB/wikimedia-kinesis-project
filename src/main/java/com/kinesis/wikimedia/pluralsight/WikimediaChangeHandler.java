@@ -53,7 +53,7 @@ public class WikimediaChangeHandler implements EventHandler {
             PutRecordRequest record = new PutRecordRequest();
             byte[] msgBytes = arg1.getData().getBytes(StandardCharsets.UTF_8);
             record.setStreamName(topic);
-            // record.setPartitionKey("1");
+            record.setPartitionKey("1");
             record.setData(ByteBuffer.wrap(msgBytes));
             PutRecordResult putRecordResult = kinesisClient.putRecord(record);
             log.info("Put record result: " + putRecordResult);
