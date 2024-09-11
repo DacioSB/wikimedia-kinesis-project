@@ -4,6 +4,8 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.kinesis.AmazonKinesis;
 import com.amazonaws.services.kinesis.AmazonKinesisClientBuilder;
 import com.amazonaws.services.kinesis.model.GetRecordsRequest;
@@ -18,8 +20,9 @@ import twitter4j.TwitterObjectFactory;
 
 public class WikimediaConsumer {
     public static void main(String[] args) {
-
-        var kinesisClient = createKinesisClient();
+        String accessKey = "";
+        String secretKey = "";
+        var kinesisClient = createKinesisClient(accessKey, secretKey);
 
         GetShardIteratorRequest getShardIteratorRequest = new GetShardIteratorRequest();
         getShardIteratorRequest.setStreamName("wiki-stream");
@@ -48,10 +51,10 @@ public class WikimediaConsumer {
 
     }
 
-    private static AmazonKinesis createKinesisClient() {
-        AmazonKinesisClientBuilder clientBuilder = AmazonKinesisClientBuilder.standard();
-
-        return clientBuilder.build();
+    private static AmazonKinesis createKinesisClient(String accessKey, String secretKey) {
+        BasicAWSCredentials awsCreds = new BasicAWSCredentials(accessKey, secretKey);
+        AWSStaticCredentialsProvider credentialsProvider = new AWSStaticCredentialsProvider(awsCreds);
+        return AmazonKinesisClientBuilder.standard().withCredentials(credentialsProvider).withRegion("us-east-1").build();
     }
 
     private static void sleep(long ms) {
@@ -66,10 +69,11 @@ public class WikimediaConsumer {
 
     private static void processRecord(Record record) {
         ByteBuffer data = record.getData();
-        String tweetJson = new String(data.array(), StandardCharsets.UTF_8);
-
-        var tweet = parseTweet(tweetJson);
-        System.out.println(tweet.getLang() + " => " + tweet.getText());
+        String wikimediaJson = new String(data.array(), StandardCharsets.UTF_8);
+        // TODO: remember to change from twitter to wikimedia and then get some relevant information
+        //remember to seek in the other wikimedia project
+        var wiki = parseTweet(wikimediaJson);
+        System.out.println(wiki.getLang() + " => " + wiki.getText());
     }
 
     private static Status parseTweet(String tweetJson) {
