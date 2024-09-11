@@ -6,7 +6,6 @@ import java.nio.charset.StandardCharsets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.kinesis.AmazonKinesis;
@@ -27,9 +26,7 @@ public class WikimediaChangeHandler implements EventHandler {
         // and aws.access.key
         BasicAWSCredentials awsCreds = new BasicAWSCredentials(accessKey, secretKey);
         AWSStaticCredentialsProvider credentialsProvider = new AWSStaticCredentialsProvider(awsCreds);
-        AmazonKinesisClientBuilder clientBuilder = AmazonKinesisClientBuilder.standard()
-                .setCredentials(credentialsProvider);
-        this.kinesisClient = clientBuilder.build();
+        this.kinesisClient = AmazonKinesisClientBuilder.standard().withCredentials(credentialsProvider).withRegion("us-east-1").build();
     }
 
     @Override
@@ -53,7 +50,7 @@ public class WikimediaChangeHandler implements EventHandler {
             PutRecordRequest record = new PutRecordRequest();
             byte[] msgBytes = arg1.getData().getBytes(StandardCharsets.UTF_8);
             record.setStreamName(topic);
-            record.setPartitionKey("1");
+            record.setPartitionKey("partition_key");
             record.setData(ByteBuffer.wrap(msgBytes));
             PutRecordResult putRecordResult = kinesisClient.putRecord(record);
             log.info("Put record result: " + putRecordResult);
