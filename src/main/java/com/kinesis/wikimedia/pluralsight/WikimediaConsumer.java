@@ -13,6 +13,7 @@ import com.amazonaws.services.kinesis.model.GetRecordsResult;
 import com.amazonaws.services.kinesis.model.GetShardIteratorRequest;
 import com.amazonaws.services.kinesis.model.GetShardIteratorResult;
 import com.amazonaws.services.kinesis.model.Record;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import twitter4j.Status;
 import twitter4j.TwitterException;
@@ -83,4 +84,20 @@ public class WikimediaConsumer {
             throw new RuntimeException(e);
         }
     }
+
+    // <dependency>
+    // <groupId>com.fasterxml.jackson.core</groupId>
+    // <artifactId>jackson-databind</artifactId>
+    // <version>2.13.0</version>
+    // </dependency>
+
+    // private static WikimediaChange parseWikimedia(String wikimediaJson) {
+    //     ObjectMapper objectMapper = new ObjectMapper();
+    //     try {
+    //         return objectMapper.readValue(wikimediaJson, WikimediaChange.class);
+    //     } catch (Exception e) {
+    //         throw new RuntimeException(e);
+    //     }
+    // }
+
 }
