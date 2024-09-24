@@ -15,10 +15,7 @@ import com.amazonaws.services.kinesis.model.GetShardIteratorResult;
 import com.amazonaws.services.kinesis.model.Record;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import twitter4j.Status;
-import twitter4j.TwitterException;
-import twitter4j.TwitterObjectFactory;
-
+//TODO: refactor so it can be used with WikimediaChangeHandler
 public class WikimediaConsumer {
     public static void main(String[] args) {
         String accessKey = "";
@@ -71,18 +68,8 @@ public class WikimediaConsumer {
     private static void processRecord(Record record) {
         ByteBuffer data = record.getData();
         String wikimediaJson = new String(data.array(), StandardCharsets.UTF_8);
-        // TODO: remember to change from twitter to wikimedia and then get some relevant information
-        //remember to seek in the other wikimedia project
-        var wiki = parseTweet(wikimediaJson);
-        System.out.println(wiki.getLang() + " => " + wiki.getText());
-    }
-
-    private static Status parseTweet(String tweetJson) {
-        try {
-            return TwitterObjectFactory.createStatus(tweetJson);
-        } catch (TwitterException e) {
-            throw new RuntimeException(e);
-        }
+        var wiki = parseWikimedia(wikimediaJson);
+        System.out.println("Title: " + wiki.getTitle() + ", ParsedComment: " + wiki.getParsedcomment());
     }
 
     // <dependency>
@@ -91,13 +78,13 @@ public class WikimediaConsumer {
     // <version>2.13.0</version>
     // </dependency>
 
-    // private static WikimediaChange parseWikimedia(String wikimediaJson) {
-    //     ObjectMapper objectMapper = new ObjectMapper();
-    //     try {
-    //         return objectMapper.readValue(wikimediaJson, WikimediaChange.class);
-    //     } catch (Exception e) {
-    //         throw new RuntimeException(e);
-    //     }
-    // }
+    private static WikimediaRepresentation parseWikimedia(String wikimediaJson) {
+        ObjectMapper objectMapper = new ObjectMapper();
+        try {
+            return objectMapper.readValue(wikimediaJson, WikimediaRepresentation.class);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
 
 }

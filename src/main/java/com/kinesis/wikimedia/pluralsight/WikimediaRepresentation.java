@@ -191,4 +191,7 @@ public class WikimediaRepresentation {
         this.wiki = wiki;
         this.parsedcomment = parsedcomment;
     }
+
+    public WikimediaRepresentation() {
+    }
 }
