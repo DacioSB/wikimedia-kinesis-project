@@ -1,18 +1,30 @@
 package com.kinesis.wikimedia.pluralsight;
 
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.services.kinesis.AmazonKinesis;
-import com.amazonaws.services.kinesis.AmazonKinesisClientBuilder;
-import com.amazonaws.services.kinesis.model.Consumer;
-import com.amazonaws.services.kinesis.model.DescribeStreamConsumerRequest;
-import com.amazonaws.services.kinesis.model.DescribeStreamConsumerResult;
-import com.amazonaws.services.kinesis.model.GetRecordsRequest;
-import com.amazonaws.services.kinesis.model.GetRecordsResult;
-import com.amazonaws.services.kinesis.model.GetShardIteratorRequest;
-import com.amazonaws.services.kinesis.model.GetShardIteratorResult;
-import com.amazonaws.services.kinesis.model.RegisterStreamConsumerRequest;
-import com.amazonaws.services.kinesis.model.RegisterStreamConsumerResult;
+import java.nio.ByteBuffer;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+
+import javax.swing.plaf.synth.Region;
+
+import software.amazon.awssdk.services.kinesis.KinesisAsyncClient;
+import software.amazon.awssdk.services.kinesis.KinesisClient;
+import software.amazon.awssdk.services.kinesis.model.Consumer;
+import software.amazon.awssdk.services.kinesis.model.ConsumerStatus;
+import software.amazon.awssdk.services.kinesis.model.DescribeStreamConsumerRequest;
+import software.amazon.awssdk.services.kinesis.model.DescribeStreamConsumerResponse;
+import software.amazon.awssdk.services.kinesis.model.GetRecordsRequest;
+import software.amazon.awssdk.services.kinesis.model.Record;
+import software.amazon.awssdk.services.kinesis.model.RegisterStreamConsumerRequest;
+import software.amazon.awssdk.services.kinesis.model.RegisterStreamConsumerResponse;
+import software.amazon.awssdk.services.kinesis.model.ShardIteratorType;
+import software.amazon.awssdk.services.kinesis.model.StartingPosition;
+import software.amazon.awssdk.services.kinesis.model.SubscribeToShardEvent;
+import software.amazon.awssdk.services.kinesis.model.SubscribeToShardRequest;
+import software.amazon.awssdk.services.kinesis.model.SubscribeToShardResponseHandler;
+
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.regions.*;
 
 public class WikimediaFanOutConsumer {
     public static void main(String[] args) {
@@ -23,40 +35,46 @@ public class WikimediaFanOutConsumer {
         Consumer consumer = registerConsumer(kinesisClient);
         waitConsumerActive(kinesisClient, consumer);
 
-        GetShardIteratorRequest getShardIteratorRequest = new GetShardIteratorRequest();
-        getShardIteratorRequest.setStreamName("wiki-stream");
-        getShardIteratorRequest.setShardId("shardId-000000000001");
-        getShardIteratorRequest.setShardIteratorType("TRIM_HORIZON");
-
-        GetShardIteratorResult getShardIteratorResult = kinesisClient.getShardIterator(getShardIteratorRequest);
-        String shardIterator = getShardIteratorResult.getShardIterator();
+        StartingPosition startingPosition = StartingPosition
+                .builder()
+                .type(ShardIteratorType.TRIM_HORIZON)
+                .build();
+        SubscribeToShardRequest subscribeToShardRequest
+                = SubscribeToShardRequest.builder()
+                .consumerARN(consumer.consumerARN())
+                .shardId("shardId-000000000001")
+                .startingPosition(startingPosition)
+                .build();
 
         while (true) {
-            GetRecordsRequest getRecordsRequest = new GetRecordsRequest();
-            getRecordsRequest.setShardIterator(shardIterator);
+            System.out.println("Subscribing to a shard");
+            SubscribeToShardResponseHandler recordsHandler
+                    = SubscribeToShardResponseHandler
+                    .builder()
+                    .onError(t -> System.err.println("Subscribe to shard error: " + t.getMessage()))
+                    .subscriber(new RecordsProcessor())
+                    .build();
 
-            GetRecordsResult result = kinesisClient.getRecords(getRecordsRequest);
-
-            List<Record> records = result.getRecords();
-
-            for (Record record : records) {
-                processRecord(record);
-            }
-
-            sleep(200);
-
-            shardIterator = result.getNextShardIterator();
+            CompletableFuture<Void> future = kinesisClient
+                    .subscribeToShard(subscribeToShardRequest, recordsHandler);
+            future.join();
         }
 
     }
-    private static void waitConsumerActive(AmazonKinesis kinesisClient, Consumer consumer) {
-        DescribeStreamConsumerResult result;
+    private static void waitConsumerActive(KinesisClient kinesisClient, Consumer consumer) {
+        DescribeStreamConsumerResponse result;
         do {
-            System.out.println("Waiting for consumer to be active");
-            sleep(1000);
+            System.out.println("Waiting for enhanced consumer to become active");
+            sleep(500);
             result = kinesisClient
-                    .describeStreamConsumer(new DescribeStreamConsumerRequest().withConsumerARN(consumer.getConsumerARN()));
-        } while (!result.getConsumerDescription().getConsumerStatus().equals("ACTIVE"));
+                    .describeStreamConsumer(
+                            DescribeStreamConsumerRequest
+                                    .builder()
+                                    .consumerARN(consumer.consumerARN())
+                                    .build()
+                    );
+        } while (result.consumerDescription().consumerStatus()
+                != ConsumerStatus.ACTIVE);
         System.out.println("Consumer active");
     }
     private static void sleep(long ms) {
@@ -67,22 +85,39 @@ public class WikimediaFanOutConsumer {
             throw new RuntimeException(exception);
         }
     }
-    private static Consumer registerConsumer(AmazonKinesis kinesisClient) {
+    private static Consumer registerConsumer(KinesisClient kinesisClient) {
         
-        RegisterStreamConsumerRequest registerStreamConsumerRequest = new RegisterStreamConsumerRequest();
-        registerStreamConsumerRequest.setConsumerName("fan-out-consumer");
-        registerStreamConsumerRequest.setStreamARN("arn:aws:kinesis:us-east-1:000000000000:stream/wiki-stream");
+        RegisterStreamConsumerRequest registerStreamConsumerRequest = RegisterStreamConsumerRequest.builder()
+                .consumerName("fan-out-consumer")
+                .streamARN("arn:aws:kinesis:us-east-1:000000000000:stream/wiki-stream")
+                .build();
 
-        RegisterStreamConsumerResult response = kinesisClient
+        RegisterStreamConsumerResponse response = kinesisClient
                 .registerStreamConsumer(registerStreamConsumerRequest);
-        Consumer consumer = response.getConsumer();
+        Consumer consumer = response.consumer();
         System.out.println("Registered consumer: " + consumer);
 
         return consumer;
     }
-    private static AmazonKinesis createKinesisClient(String accessKey, String secretKey) {
-        BasicAWSCredentials awsCreds = new BasicAWSCredentials(accessKey, secretKey);
-        AWSStaticCredentialsProvider credentialsProvider = new AWSStaticCredentialsProvider(awsCreds);
-        return AmazonKinesisClientBuilder.standard().withCredentials(credentialsProvider).withRegion("us-east-1").build();
+    private static KinesisClient createKinesisClient(String accessKey, String secretKey) {
+        KinesisClient kinesisClient = KinesisClient.builder()
+        .credentialsProvider(StaticCredentialsProvider.create(
+            AwsBasicCredentials.create(accessKey, accessKey)))
+        .region(software.amazon.awssdk.regions.Region.US_EAST_1)
+                .build();
+        return kinesisClient;
+    }
+
+    static class RecordsProcessor implements SubscribeToShardResponseHandler.Visitor {
+        @Override
+        public void visit(SubscribeToShardEvent event) {
+            for (Record record : event.records()) {
+                processRecord(record);
+            }
+        }
+    }
+
+    private static void processRecord(Record record) {
+        //TODO:
     }
 }
