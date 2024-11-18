@@ -72,11 +72,6 @@ public class WikimediaConsumer {
         System.out.println("Title: " + wiki.getTitle() + ", ParsedComment: " + wiki.getParsedcomment());
     }
 
-    // <dependency>
-    // <groupId>com.fasterxml.jackson.core</groupId>
-    // <artifactId>jackson-databind</artifactId>
-    // <version>2.13.0</version>
-    // </dependency>
 
     private static WikimediaRepresentation parseWikimedia(String wikimediaJson) {
         ObjectMapper objectMapper = new ObjectMapper();

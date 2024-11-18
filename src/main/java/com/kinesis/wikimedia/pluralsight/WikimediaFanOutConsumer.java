@@ -1,18 +1,14 @@
 package com.kinesis.wikimedia.pluralsight;
 
-import java.nio.ByteBuffer;
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
-import javax.swing.plaf.synth.Region;
 
 import software.amazon.awssdk.services.kinesis.KinesisAsyncClient;
-import software.amazon.awssdk.services.kinesis.KinesisClient;
 import software.amazon.awssdk.services.kinesis.model.Consumer;
 import software.amazon.awssdk.services.kinesis.model.ConsumerStatus;
 import software.amazon.awssdk.services.kinesis.model.DescribeStreamConsumerRequest;
 import software.amazon.awssdk.services.kinesis.model.DescribeStreamConsumerResponse;
-import software.amazon.awssdk.services.kinesis.model.GetRecordsRequest;
 import software.amazon.awssdk.services.kinesis.model.Record;
 import software.amazon.awssdk.services.kinesis.model.RegisterStreamConsumerRequest;
 import software.amazon.awssdk.services.kinesis.model.RegisterStreamConsumerResponse;
@@ -24,10 +20,9 @@ import software.amazon.awssdk.services.kinesis.model.SubscribeToShardResponseHan
 
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
-import software.amazon.awssdk.regions.*;
 
 public class WikimediaFanOutConsumer {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         String accessKey = "";
         String secretKey = "";
         var kinesisClient = createKinesisClient(accessKey, secretKey);
@@ -61,21 +56,24 @@ public class WikimediaFanOutConsumer {
         }
 
     }
-    private static void waitConsumerActive(KinesisClient kinesisClient, Consumer consumer) {
-        DescribeStreamConsumerResponse result;
+    private static void waitConsumerActive(
+            KinesisAsyncClient kinesisClient,
+            Consumer consumer)
+            throws InterruptedException, java.util.concurrent.ExecutionException {
+        DescribeStreamConsumerResponse consumerResponse;
         do {
             System.out.println("Waiting for enhanced consumer to become active");
             sleep(500);
-            result = kinesisClient
+            consumerResponse = kinesisClient
                     .describeStreamConsumer(
                             DescribeStreamConsumerRequest
                                     .builder()
                                     .consumerARN(consumer.consumerARN())
                                     .build()
-                    );
-        } while (result.consumerDescription().consumerStatus()
+                    ).get();
+        } while (consumerResponse.consumerDescription().consumerStatus()
                 != ConsumerStatus.ACTIVE);
-        System.out.println("Consumer active");
+        System.out.println("Consumer is active");
     }
     private static void sleep(long ms) {
         System.out.println("Sleeping");
@@ -85,7 +83,7 @@ public class WikimediaFanOutConsumer {
             throw new RuntimeException(exception);
         }
     }
-    private static Consumer registerConsumer(KinesisClient kinesisClient) {
+    private static Consumer registerConsumer(KinesisAsyncClient kinesisClient) throws InterruptedException, ExecutionException {
         
         RegisterStreamConsumerRequest registerStreamConsumerRequest = RegisterStreamConsumerRequest.builder()
                 .consumerName("fan-out-consumer")
@@ -93,14 +91,14 @@ public class WikimediaFanOutConsumer {
                 .build();
 
         RegisterStreamConsumerResponse response = kinesisClient
-                .registerStreamConsumer(registerStreamConsumerRequest);
+        .registerStreamConsumer(registerStreamConsumerRequest).get();
         Consumer consumer = response.consumer();
         System.out.println("Registered consumer: " + consumer);
 
         return consumer;
     }
-    private static KinesisClient createKinesisClient(String accessKey, String secretKey) {
-        KinesisClient kinesisClient = KinesisClient.builder()
+    private static KinesisAsyncClient createKinesisClient(String accessKey, String secretKey) {
+        KinesisAsyncClient kinesisClient = KinesisAsyncClient.builder()
         .credentialsProvider(StaticCredentialsProvider.create(
             AwsBasicCredentials.create(accessKey, accessKey)))
         .region(software.amazon.awssdk.regions.Region.US_EAST_1)
