@@ -5,7 +5,8 @@ import java.util.List;
 
 import java.util.concurrent.ExecutionException;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.kinesis.wikimedia.pluralsight.utils.AWSUtils;
+import com.kinesis.wikimedia.pluralsight.utils.WikimediaParserUtils;
 
 import software.amazon.awssdk.services.kinesis.KinesisAsyncClient;
 import software.amazon.awssdk.services.kinesis.model.GetRecordsRequest;
@@ -14,16 +15,13 @@ import software.amazon.awssdk.services.kinesis.model.GetShardIteratorRequest;
 import software.amazon.awssdk.services.kinesis.model.Record;
 import software.amazon.awssdk.services.kinesis.model.ShardIteratorType;
 
-import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
-import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.SdkBytes;
 
-//TODO: refactor so it can be used with WikimediaChangeHandler
 public class WikimediaConsumer {
     public static void main(String[] args) throws InterruptedException, ExecutionException {
         String accessKey = "";
         String secretKey = "";
-        KinesisAsyncClient kinesisClient = createKinesisClient(accessKey, secretKey);
+        KinesisAsyncClient kinesisClient = AWSUtils.createKinesisClient(accessKey, secretKey);
 
         GetShardIteratorRequest getShardIteratorRequest = GetShardIteratorRequest.builder()
             .streamName("wiki-stream")
@@ -54,15 +52,6 @@ public class WikimediaConsumer {
 
     }
 
-    private static KinesisAsyncClient createKinesisClient(String accessKey, String secretKey) {
-        KinesisAsyncClient kinesisClient = KinesisAsyncClient.builder()
-        .credentialsProvider(StaticCredentialsProvider.create(
-            AwsBasicCredentials.create(accessKey, accessKey)))
-        .region(software.amazon.awssdk.regions.Region.US_EAST_1)
-                .build();
-        return kinesisClient;
-    }
-
     private static void sleep(long ms) {
         System.out.println("Sleeping");
         try {
@@ -76,18 +65,8 @@ public class WikimediaConsumer {
     private static void processRecord(Record record) {
         SdkBytes data = record.data();
         String wikimediaJson = new String(data.asByteArray(), StandardCharsets.UTF_8);
-        var wiki = parseWikimedia(wikimediaJson);
+        var wiki = WikimediaParserUtils.parseWikimedia(wikimediaJson);
         System.out.println("Title: " + wiki.getTitle() + ", ParsedComment: " + wiki.getParsedcomment());
-    }
-
-
-    private static WikimediaRepresentation parseWikimedia(String wikimediaJson) {
-        ObjectMapper objectMapper = new ObjectMapper();
-        try {
-            return objectMapper.readValue(wikimediaJson, WikimediaRepresentation.class);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
     }
 
 }
