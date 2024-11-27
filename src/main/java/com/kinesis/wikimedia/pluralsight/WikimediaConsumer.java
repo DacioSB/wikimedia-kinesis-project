@@ -1,42 +1,47 @@
 package com.kinesis.wikimedia.pluralsight;
 
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.services.kinesis.AmazonKinesis;
-import com.amazonaws.services.kinesis.AmazonKinesisClientBuilder;
-import com.amazonaws.services.kinesis.model.GetRecordsRequest;
-import com.amazonaws.services.kinesis.model.GetRecordsResult;
-import com.amazonaws.services.kinesis.model.GetShardIteratorRequest;
-import com.amazonaws.services.kinesis.model.GetShardIteratorResult;
-import com.amazonaws.services.kinesis.model.Record;
+import java.util.concurrent.ExecutionException;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import software.amazon.awssdk.services.kinesis.KinesisAsyncClient;
+import software.amazon.awssdk.services.kinesis.model.GetRecordsRequest;
+import software.amazon.awssdk.services.kinesis.model.GetRecordsResponse;
+import software.amazon.awssdk.services.kinesis.model.GetShardIteratorRequest;
+import software.amazon.awssdk.services.kinesis.model.Record;
+import software.amazon.awssdk.services.kinesis.model.ShardIteratorType;
+
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.core.SdkBytes;
 
 //TODO: refactor so it can be used with WikimediaChangeHandler
 public class WikimediaConsumer {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException, ExecutionException {
         String accessKey = "";
         String secretKey = "";
-        var kinesisClient = createKinesisClient(accessKey, secretKey);
+        KinesisAsyncClient kinesisClient = createKinesisClient(accessKey, secretKey);
 
-        GetShardIteratorRequest getShardIteratorRequest = new GetShardIteratorRequest();
-        getShardIteratorRequest.setStreamName("wiki-stream");
-        getShardIteratorRequest.setShardId("shardId-000000000001");
-        getShardIteratorRequest.setShardIteratorType("TRIM_HORIZON");
+        GetShardIteratorRequest getShardIteratorRequest = GetShardIteratorRequest.builder()
+            .streamName("wiki-stream")
+            .shardId("shardId-000000000000")
+            .shardIteratorType(ShardIteratorType.TRIM_HORIZON)
+            .build();
 
-        GetShardIteratorResult getShardIteratorResult = kinesisClient.getShardIterator(getShardIteratorRequest);
-        String shardIterator = getShardIteratorResult.getShardIterator();
+            String shardIterator = kinesisClient.getShardIterator(getShardIteratorRequest).get().shardIterator();
 
         while (true) {
-            GetRecordsRequest getRecordsRequest = new GetRecordsRequest();
-            getRecordsRequest.setShardIterator(shardIterator);
+            GetRecordsRequest getRecordsRequest = GetRecordsRequest.builder()
+            .shardIterator(shardIterator)
+            .limit(25) // limit on the maximum number of records to return
+            .build();
 
-            GetRecordsResult result = kinesisClient.getRecords(getRecordsRequest);
+            GetRecordsResponse result = kinesisClient.getRecords(getRecordsRequest).get();
 
-            List<Record> records = result.getRecords();
+            List<Record> records = result.records();
 
             for (Record record : records) {
                 processRecord(record);
@@ -44,15 +49,18 @@ public class WikimediaConsumer {
 
             sleep(200);
 
-            shardIterator = result.getNextShardIterator();
+            shardIterator = result.nextShardIterator();
         }
 
     }
 
-    private static AmazonKinesis createKinesisClient(String accessKey, String secretKey) {
-        BasicAWSCredentials awsCreds = new BasicAWSCredentials(accessKey, secretKey);
-        AWSStaticCredentialsProvider credentialsProvider = new AWSStaticCredentialsProvider(awsCreds);
-        return AmazonKinesisClientBuilder.standard().withCredentials(credentialsProvider).withRegion("us-east-1").build();
+    private static KinesisAsyncClient createKinesisClient(String accessKey, String secretKey) {
+        KinesisAsyncClient kinesisClient = KinesisAsyncClient.builder()
+        .credentialsProvider(StaticCredentialsProvider.create(
+            AwsBasicCredentials.create(accessKey, accessKey)))
+        .region(software.amazon.awssdk.regions.Region.US_EAST_1)
+                .build();
+        return kinesisClient;
     }
 
     private static void sleep(long ms) {
@@ -66,8 +74,8 @@ public class WikimediaConsumer {
     }
 
     private static void processRecord(Record record) {
-        ByteBuffer data = record.getData();
-        String wikimediaJson = new String(data.array(), StandardCharsets.UTF_8);
+        SdkBytes data = record.data();
+        String wikimediaJson = new String(data.asByteArray(), StandardCharsets.UTF_8);
         var wiki = parseWikimedia(wikimediaJson);
         System.out.println("Title: " + wiki.getTitle() + ", ParsedComment: " + wiki.getParsedcomment());
     }
