@@ -11,12 +11,15 @@ import com.launchdarkly.eventsource.EventSource;
  *
  */
 public class WikimediaMainProducer {
+    private static final String HTTPS_STREAM_WIKIMEDIA_ORG_V2_STREAM_RECENTCHANGE = "https://stream.wikimedia.org/v2/stream/recentchange";
+    private static final String WIKI_STREAM = "wiki-stream";
+
     public static void main(String[] args) throws InterruptedException {
         String accessKey = "";
         String secretKey = "";
-        String topic = "wiki-stream";
+        String topic = WIKI_STREAM;
         EventHandler handler = new WikimediaChangeHandler(topic, accessKey, secretKey);
-        String url = "https://stream.wikimedia.org/v2/stream/recentchange";
+        String url = HTTPS_STREAM_WIKIMEDIA_ORG_V2_STREAM_RECENTCHANGE;
         EventSource.Builder builder = new EventSource.Builder(handler, URI.create(url));
         EventSource eventSource = builder.build();
 

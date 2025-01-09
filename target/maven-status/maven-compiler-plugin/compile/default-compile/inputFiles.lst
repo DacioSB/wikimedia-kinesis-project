@@ -1,6 +1,0 @@
-/home/docitu/Documents/data_engineering/wikimedia-kinesis-project/src/main/java/com/kinesis/wikimedia/pluralsight/WikimediaRepresentation.java
-/home/docitu/Documents/data_engineering/wikimedia-kinesis-project/src/main/java/com/kinesis/wikimedia/pluralsight/WikimediaMainProducer.java
-/home/docitu/Documents/data_engineering/wikimedia-kinesis-project/src/main/java/com/kinesis/wikimedia/pluralsight/WikimediaConsumer.java
-/home/docitu/Documents/data_engineering/wikimedia-kinesis-project/src/main/java/com/kinesis/wikimedia/pluralsight/WikimediaMetaRepresentation.java
-/home/docitu/Documents/data_engineering/wikimedia-kinesis-project/src/main/java/com/kinesis/wikimedia/pluralsight/WikimediaChangeHandler.java
-/home/docitu/Documents/data_engineering/wikimedia-kinesis-project/src/main/java/com/kinesis/wikimedia/pluralsight/WikimediaFanOutConsumer.java

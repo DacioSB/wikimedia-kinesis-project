@@ -18,14 +18,17 @@ import software.amazon.awssdk.services.kinesis.model.ShardIteratorType;
 import software.amazon.awssdk.core.SdkBytes;
 
 public class WikimediaConsumer {
+    private static final String SHARD_ID_000000000001 = "shardId-000000000001";
+    private static final String WIKI_STREAM = "wiki-stream";
+
     public static void main(String[] args) throws InterruptedException, ExecutionException {
         String accessKey = "";
         String secretKey = "";
         KinesisAsyncClient kinesisClient = AWSUtils.createKinesisClient(accessKey, secretKey);
 
         GetShardIteratorRequest getShardIteratorRequest = GetShardIteratorRequest.builder()
-            .streamName("wiki-stream")
-            .shardId("shardId-000000000000")
+            .streamName(WIKI_STREAM)
+            .shardId(SHARD_ID_000000000001)
             .shardIteratorType(ShardIteratorType.TRIM_HORIZON)
             .build();
 

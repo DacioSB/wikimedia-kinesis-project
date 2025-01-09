@@ -6,11 +6,10 @@ import java.util.concurrent.CompletableFuture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.kinesis.wikimedia.pluralsight.utils.AWSUtils;
 import com.launchdarkly.eventsource.EventHandler;
 import com.launchdarkly.eventsource.MessageEvent;
 
-import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
-import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.services.kinesis.KinesisAsyncClient;
 import software.amazon.awssdk.services.kinesis.model.PutRecordRequest;
@@ -23,16 +22,7 @@ public class WikimediaChangeHandler implements EventHandler {
 
     public WikimediaChangeHandler(String topic, String accessKey, String secretKey) {
         this.topic = topic;
-        this.kinesisClient = createKinesisClient(accessKey, secretKey);
-    }
-
-    private KinesisAsyncClient createKinesisClient(String accessKey, String secretKey) {
-        KinesisAsyncClient kinesisClient = KinesisAsyncClient.builder()
-        .credentialsProvider(StaticCredentialsProvider.create(
-            AwsBasicCredentials.create(accessKey, accessKey)))
-        .region(software.amazon.awssdk.regions.Region.US_EAST_1)
-                .build();
-        return kinesisClient;
+        this.kinesisClient = AWSUtils.createKinesisClient(accessKey, secretKey);
     }
 
     @Override

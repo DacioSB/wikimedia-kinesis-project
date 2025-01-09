@@ -24,6 +24,10 @@ import software.amazon.awssdk.services.kinesis.model.SubscribeToShardResponseHan
 import software.amazon.awssdk.core.SdkBytes;
 
 public class WikimediaFanOutConsumer {
+    private static final String ARN_AWS_KINESIS_US_EAST_1_550172992026_STREAM_WIKI_STREAM = "arn:aws:kinesis:us-east-1:550172992026:stream/wiki-stream";
+    private static final String FAN_OUT_CONSUMER = "fan-out-consumer";
+    private static final String SHARD_ID_000000000001 = "shardId-000000000001";
+
     public static void main(String[] args) throws Exception {
         String accessKey = "";
         String secretKey = "";
@@ -39,7 +43,7 @@ public class WikimediaFanOutConsumer {
         SubscribeToShardRequest subscribeToShardRequest
                 = SubscribeToShardRequest.builder()
                 .consumerARN(consumer.consumerARN())
-                .shardId("shardId-000000000001")
+                .shardId(SHARD_ID_000000000001)
                 .startingPosition(startingPosition)
                 .build();
 
@@ -88,8 +92,8 @@ public class WikimediaFanOutConsumer {
     private static Consumer registerConsumer(KinesisAsyncClient kinesisClient) throws InterruptedException, ExecutionException {
         
         RegisterStreamConsumerRequest registerStreamConsumerRequest = RegisterStreamConsumerRequest.builder()
-                .consumerName("fan-out-consumer")
-                .streamARN("arn:aws:kinesis:us-east-1:000000000000:stream/wiki-stream")
+                .consumerName(FAN_OUT_CONSUMER)
+                .streamARN(ARN_AWS_KINESIS_US_EAST_1_550172992026_STREAM_WIKI_STREAM)
                 .build();
 
         RegisterStreamConsumerResponse response = kinesisClient

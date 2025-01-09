@@ -9,7 +9,7 @@ public class AWSUtils {
     public static KinesisAsyncClient createKinesisClient(String accessKey, String secretKey) {
         KinesisAsyncClient kinesisClient = KinesisAsyncClient.builder()
         .credentialsProvider(StaticCredentialsProvider.create(
-            AwsBasicCredentials.create(accessKey, accessKey)))
+            AwsBasicCredentials.create(accessKey, secretKey)))
         .region(software.amazon.awssdk.regions.Region.US_EAST_1)
                 .build();
         return kinesisClient;
