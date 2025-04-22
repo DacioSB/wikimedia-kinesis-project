@@ -37,6 +37,13 @@
       <version>2.27.19</version>
     </dependency>
 
+    <!-- https://mvnrepository.com/artifact/com.amazonaws/amazon-kinesis-producer -->
+    <dependency>
+        <groupId>com.amazonaws</groupId>
+        <artifactId>amazon-kinesis-producer</artifactId>
+        <version>0.15.12</version>
+    </dependency>
+
     <!-- https://mvnrepository.com/artifact/software.amazon.awssdk/aws-sdk-java -->
     <dependency>
       <groupId>software.amazon.awssdk</groupId>

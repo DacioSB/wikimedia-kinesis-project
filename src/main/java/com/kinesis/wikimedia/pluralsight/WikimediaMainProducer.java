@@ -3,6 +3,7 @@ package com.kinesis.wikimedia.pluralsight;
 import java.net.URI;
 import java.util.concurrent.TimeUnit;
 
+import com.kinesis.wikimedia.pluralsight.KPLKPC.WikimediaChangeHandlerKPL;
 import com.launchdarkly.eventsource.EventHandler;
 import com.launchdarkly.eventsource.EventSource;
 
@@ -18,7 +19,8 @@ public class WikimediaMainProducer {
         String accessKey = "";
         String secretKey = "";
         String topic = WIKI_STREAM;
-        EventHandler handler = new WikimediaChangeHandler(topic, accessKey, secretKey);
+        //EventHandler handler = new WikimediaChangeHandler(topic, accessKey, secretKey);
+        EventHandler handler = new WikimediaChangeHandlerKPL(topic, accessKey, secretKey);
         String url = HTTPS_STREAM_WIKIMEDIA_ORG_V2_STREAM_RECENTCHANGE;
         EventSource.Builder builder = new EventSource.Builder(handler, URI.create(url));
         EventSource eventSource = builder.build();
