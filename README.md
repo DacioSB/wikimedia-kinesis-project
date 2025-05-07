@@ -1,5 +1,7 @@
 # Wikimedia Kinesis Streaming Application
 
+![Wikimedia](https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/Wikimedia-logo.png/768px-Wikimedia-logo.png)
+
 This project demonstrates a data engineering pipeline that streams real-time Wikimedia changes using the Wikimedia EventStreams API and processes them with AWS Kinesis. The application includes a producer that streams data to Kinesis and multiple consumers that process the data using different approaches, including enhanced fan-out.
 
 ## Features
